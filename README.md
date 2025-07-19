@@ -41,272 +41,200 @@ npm run build
 yarn build
 ```
 
+## Данные и типы данных, используемые в приложении
 
-## Интерфейсы данных
+**Товар в каталоге**
 
-
-**Описание товара**
- 
-```
+```ts
 export interface IProduct {
-  id: number;                 // уникальный идентификатор
-  name: string;               // название товара
-  description: string;        // подробное описание
-  price: number;              // цена в рублях
-  category: string;           // категория товара
-  imageUrl: string;           // URL изображения
+  id: string;           // уникальный идентификатор
+  description: string;  // описание
+  image: string;     // URL изображения
+  title: string;         // название
+  category: string;     // категория
+  price: number | null;        // цена в рублях
+}
+```
+**Покупатель**
+
+```ts
+export interface IBuyer {
+  payment: string;
+  email: string;
+  phone: string;
+  address: string;
+  total: number; // общая сумма заказа
+  items: string[]; // список идентификаторов товаров в заказе
 }
 ```
 
-**Данные покупателя, заполняемые на шаге оформления**
-
-```
-export interface IBuyerData {
-  paymentMethod: 'card' | 'cash'; // выбранный способ оплаты
-  address: string;                           // адрес доставки
-  email: string;                             // электронная почта
-  phone: string;                             // номер телефона
+**Интерфейс для модели данных товаров**
+```ts
+export interface IProductsData {
+  products: IProduct[]; // массив товаров
+  preview: string | null; // выбранная карточка товара
 }
 ```
-## Описание классов
-
-### EventEmitter 
-
-Ответственность: реализует паттерн «Наблюдатель» для обмена событиями между уровнями приложения.
-
-•	Constructor
-
+Данные товара, используемые в корзине
+```ts
+export type TCartItem = Pick<IProduct, 'id' | 'title' | 'price'>;
 ```
-constructor();
+Данные покупателя, используемые в форме способа опллаты
+```ts
+export type TPaymentForm = Pick<IBuyerData, 'payment' | 'address'>;
 ```
-
-•	Поля
-
+Данные покупателя, используемые в форме контактных данных
+```ts
+export type TContactForm = Pick<IBuyerData, 'email' | 'phone'>;
 ```
-private listeners: Map<string, Set<(...args: any[]) => void>>;
-```
-
-•	Методы
-```
-on(event: string, listener: (...args: any[]) => void): void
-  // подписаться на событие
-
-off(event: string, listener: (...args: any[]) => void): void
-  // отписаться от события
-
-emit(event: string, ...args: any[]): void
-  // уведомить всех подписчиков
-
-onAll(listener: (event: string, ...args: any[]) => void): void
-  // подписаться на **все** события
-
-offAll(): void
-  // очистить все подписки
-```
-
-⸻
-
-### ProductModel
-
-Ответственность: загрузка и хранение данных каталога товаров из API.
-
-•	Constructor
-```
-constructor(emitter: EventEmitter, apiOrigin: string);
-```
-
-•	Поля
-```
-private emitter: EventEmitter;
-private apiOrigin: string;
-private products: IProduct[];
-```
-
-•	Методы
-```
-loadAll(): Promise<IProduct[]>
-  // запрос GET /products, сохраняет в this.products и emit('products-loaded', products)
-
-getById(id: number): IProduct | undefined
-  // возвращает товар по id из this.products
+Данные покупателя, используемые в модальном окне после оплаты
+```ts
+export type TSuccessStep = Pick<IBuyerData, 'total'>;
 ```
 
 
-⸻
-
-### CartModel
-
-Ответственность: управление списком товаров в корзине (добавление, удаление, очистка).
-
-•	Constructor
-```
-constructor(emitter: EventEmitter);
-```
-
-•	Поля
-```
-private emitter: EventEmitter;
-private items: Set<number>;
-```
-
-•	Методы
-```
-add(productId: number): void
-  // добавить в this.items, emit('cart-updated', Array.from(this.items))
-
-remove(productId: number): void
-  // удалить из this.items, emit('cart-updated', ...)
-
-clear(): void
-  // очистить корзину, emit('cart-cleared')
-
-getItems(): number[]
-  // вернуть массив id из this.items
-```
+## Архитектура приложения
+Код приложения разделен на слои согласно парадигме MVP:
+- слой представления, отвечает за отображение данных на странице,
+- слой данных, отвечает за хранение и изменение данных
+- презентер, отвечает за связь представления и данных.
 
 
-⸻
+### Базовый код
 
-### BuyerDataModel
+#### Класс Арі
+Содержит в себе базовую логику отправки запросов. В конструктор передается базовый адрес сервера и опциональный объект с заголовками запросов.
+Методы:
+- `get` - выполняет `GET` запрос на переданный в параметрах ендпоинт и возвращает промис с объектом, которым ответил сервер
+- `post` - принимает объект с данными, которые будут переданы в JSON в теле запроса, и отправляет эти данные на ендпоинт переданный как параметр при вызове метода. По умолчанию выполняется `POST` запрос, но метод запроса может быть переопределен заданием третьего параметра при вызове.
 
-Ответственность: хранение и валидация данных покупателя на шагах оформления.
-
-•	Constructor
-```
-constructor(emitter: EventEmitter);
-```
-
-•	Поля
-```
-private emitter: EventEmitter;
-private paymentMethod?: IBuyerData['paymentMethod'];
-private address?: string;
-private email?: string;
-private phone?: string;
-```
-
-•	Методы
-```
-setStep1(paymentMethod: IBuyerData['paymentMethod'], address: string): void
-  // сохраняет, emit('checkout-step1-complete', { paymentMethod, address })
-
-setStep2(email: string, phone: string): void
-  // сохраняет, emit('checkout-step2-complete', { email, phone })
-
-validateStep1(): boolean
-  // проверяет, что paymentMethod и address заданы
-
-validateStep2(): boolean
-  // проверяет, что email и phone не пустые
-
-clear(): void
-  // сброс всех полей, emit('buyer-data-cleared')
-```
+#### Класс EventEmitter
+Брокер событий позволяет отправлять события и подписываться на события, происходящие в системе. Класс используется в презентере для обработки событий и в слоях приложения для генерации событий.
+Основные методы, реализуемые классом описаны интерфейсом `IEvents`:
+- `on` - подписка на событие
+- `emit` - инициализация события
+- `trigger` - возвращает функцию, при вызове которой инициализируется требуемое в параметрах событие
 
 
-⸻
+### Слой данных
 
-### CatalogController
+#### Класс ProductsData
 
-Ответственность: связывает ProductModel и представления каталога (CatalogPage, ProductCard).
+Класс отвечает за хранение данных карточек товаров. Конструктор класса принимает инстант брокера событий\
+В полях класса хранятся следующие данные:
+- `_products: IProduct[]` - массив объектов карточек
+- `_preview: string | null` - id товара, выбранного для просмотра в модальной окне
+- `events: IEvents` - экземпляр класса `EventEmitter` для инициации событий при изменении данных.\
+Так же класс предоставляет набор методов для взаимодействия с этими данными.
+- `getProduct(id: string): IProduct | undefined;` - возвращает товар по его id
 
-•	Constructor
-```
-constructor(
-  emitter: EventEmitter,
-  model: ProductModel,
-  view: CatalogPage
-);
-```
+#### Класс CartData
 
-•	Поля
-```
-private emitter: EventEmitter;
-private model: ProductModel;
-private view: CatalogPage;
-```
+Класс отвечает за функционировнаие корзины. Конструктор класса принимает инстант брокера событий\
+В полях класса хранятся следующие данные:
 
-•	Методы
-```
-init(): void
-  // подписка на 'products-loaded', вызов model.loadAll()
-
-private onProductClick(productId: number): void
-  // emit('show-product', productId)
-```
+- `_items: IProduct[]` - массив товаров в корзине
+- `_total: number` - общая сумма товаров в корзине
+- `events: IEvents` - экземпляр класса `EventEmitter` для инициации событий при изменении данных.\
+Так же класс предоставляет набор методов для взаимодействия с этими данными.
+- `addItem(product: IProduct): void` - метод для добавления товара в корзину
+- `removeItem(id: string): void` - метод для удаления товара из корзины
+- `clear(): void` - метод для очистки корзины
+- `checkProduct(id: string): boolean` - метод для проверки наличия товаров в корзине
+- `getItemsId(): string[]` - метод для получения всех индификаторов товаров в корзине
 
 
-⸻
+#### Класс BuyersData
+Класс отвечает за хранение и логику работы с данными пеокупателя. Конструктор класса принимает инстант брокера событий\
+В полях класса хранятся следующие данные:
 
-### CartController
-
-Ответственность: обрабатывает действия над корзиной и управляет CartModel и CartModal.
-
-•	Constructor
-```
-constructor(
-  emitter: EventEmitter,
-  model: CartModel,
-  view: CartModal
-);
-```
-
-•	Поля
-```
-private emitter: EventEmitter;
-private model: CartModel;
-private view: CartModal;
-```
-
-•	Методы
-```
-init(): void
-  // подписка на 'card-buy', 'card-remove', 'cart-updated', 'checkout-start'
-
-private onBuy(productId: number): void
-  // model.add(productId)
-
-private onRemove(productId: number): void
-  // model.remove(productId)
-
-private onCheckout(): void
-  // emit('checkout-start')
-```
+- `payment: string` - способ оплаты
+- `email: string` - адрес электронной почты
+- `phone: string` - номер телефона
+- `address: string` - адрес доставки
+- `total: number` - общая сумма заказа
+- `items: string[]` - список идентификаторов товаров в заказе
+- `events: IEvents` - экземпляр класса `EventEmitter` для инициации событий при изменении данных.\
+Так же класс предоставляет набор методов для взаимодействия с этими данными.
+- `chekPaymentValidation(data: Record<keyof TPaymentForm, string>): boolean;` - метод для проверки валидности формы оплаты
+- `chekContactValidation(data: Record<keyof TContactForm, string>): boolean;` - метод для проверки валидности формы контактов
+- а так-же сеттеры и геттеры для сохраниея и получаения данных из полей класса
 
 
-⸻
+### Классs представления
 
-### CheckoutController
+Все классы пердствавления отвечают за отображение внутри контейнера (DOM-элемент) передаваемых в них данных.
 
-Ответственность: управляет формами оформления (шаг 1 и шаг 2) через BuyerDataModel.
+#### Класс Modal
+Отвечает за отображение модального окна и управление его состоянием. Предоставляет методы `open` и `close` для открытия и закрытия окна. Устанавливает обработчики событий для закрытия по нажатию клавиши Escape, клику на оверлей и нажатию на кнопку-крестик.
 
-•	Constructor
-```
-constructor(
-  emitter: EventEmitter,
-  buyerModel: BuyerDataModel,
-  step1View: CheckoutStep1,
-  step2View: CheckoutStep2
-);
-```
+- `constructor(selector: string, events: IEvents)` - Принимает селектор для поиска элемента модального окна в DOM и экземпляр брокера событий (класса `EventEmitter`), обеспечивающего генерацию и обработку событий.
 
-•	Поля
-```
-private emitter: EventEmitter;
-private buyerModel: BuyerDataModel;
-private step1View: CheckoutStep1;
-private step2View: CheckoutStep2;
-```
+Поля класса:
+- `modal`: HTMLElement — DOM-элемент модального окна.
+- `events`: IEvents — экземпляр брокера событий для публикации и обработки событий внутри приложения.
 
-•	Методы
-```
-init(): void
-  // подписка на 'checkout-start', 'checkout-step1-complete', 'checkout-step2-complete'
 
-private handleStep1(data: { paymentMethod: string; address: string }): void
-  // buyerModel.setStep1(...)
+#### Класс ModalWithForm
+Является дочерним лоя Model. Предназначен для создания модального окна с формой, включающей поля ввода. При отправке формы инициирует событие и передаёт объект с введёнными данными. Также предоставляет методы для отображения сообщений об ошибках и управления состоянием (активностью) кнопки подтверждения. \
 
-private handleStep2(data: { email: string; phone: string }): void
-  // buyerModel.setStep2(...); emit('order-complete')
+Поля класса:
+- `submitButton: HTMLButtonElement` - Кнопка подтверждения
+- `_form: HTMLFormElement `- элемент формы
+- `formName: string` - значение атрибута поля формы
+- `inputs: NodeListOf<HTMLInputElement>` - коллекция всех полей ввода формы
+- `errors: Record<string, HTMLElement>` - объект хранящий все элементы для вывода ошибок под полями формы с привязкой к атрибуту name импутов
 
-```
+Методы:
+- `setValid(isValid: boolean): void` - изменяет активность кнопки подтверждения
+- `getInputValues(): Record<string, string›` - возвращает объект с данными из полей формы, где ключ - name инпута, значение - данные введенные пользователем
+- `setError(data: { field: string, value: string, validInformation: string }): void` -
+принимает объект с данными для отображения или сокрытия текстов ошибок
+- `showInputError (field: string, errorMessage: string): void` - отображает полученный текст ошибки под указанным полем ввода
+- `hideInputError (field: string): void` - очищает текст ошибки под указанным полем ввода
+- `close (): void` - расширяет родительский метод дополнительно при закрытии очищая поля формы и деактивируя кнопку продолжения
+- `get form: HTMLElement` - геттер для получения элемента формы
+
+
+#### Класс Product
+Отвечает за отображение карточки товара, задавая название, категорию, цену и изображение товара. Класс используется для отображения товаров на странице сайта. В конструктор класса передается DOM элемент темплейта, что позволяет при необходимости формировать карточки разных вариантов верстки. В классе устанавливаются слушатели на все интерактивные элементы, в результате взаимодействия с которыми пользователя генерируются соответствующие события. \
+Поля класса содержат элементы разметки элементов карточки. Конструктор, кроме темплейта принимает экземпляр "EventEmitter для инициации событий. \
+
+Методы:
+- `setData (productData: IProduct): void` - заполняет атрибуты элементов карточки данными.
+- `addToCart` - вызывает добавление каточки в корзину и изменение кнопки на удаление из корзины
+- `render(): HTMLElement;` - возвращаект полностью заполненныю карточку у установленными слушателями
+- геттер id возвращает уникальный id карточки
+
+
+### Слой коммуникации
+
+#### Класс AppApi
+В конструктор принимает экземпляр класса API и предоставляет методы для взаимодействия с backend-сервисом.
+
+## Взаимодействиее компонентов 
+Логика связывания представлений и данных реализована в файле `index.ts`, который выполняет роль презентера.
+Взаимодействие между слоями организовано через события, генерируемые с помощью брокера событий, и их обработчики, определённые в этом же файле.
+В начале `index.ts` создаются экземпляры всех необходимых классов, после чего настраиваются соответствующие обработчики событий.
+
+*Список всех событий, которые могут генериться в системе*
+*События изменения данных (генерируются классами моделями данных)*
+
+- `products:preview` — при выборе товара для предпросмотра в ProductsData.
+- `cart:changed` — после добавления/удаления товара или очистки корзины в CartData.
+- `cart:cleared `— при полной очистке корзины в CartData.
+- `buyer:validated:payment` — после проверки валидности формы оплаты в BuyersData.
+- `buyer:validated:contact` — после проверки валидности контактной формы в BuyersData.
+
+*События возникающие при взаимодействии пользователя с интерфейсом (генерируются классами, тотвечающими за предсталения)*
+
+- `product:open` — при клике на карточку товара для открытия модального окна.
+- `product:add-to-cart` — при клике на кнопку «Добавить в корзину» в карточке товара.
+- `product:remove-from-cart` — при клике на кнопку «Удалить из корзины» в карточке товара.
+- `modal:open` — при открытии любого модального окна.
+- `modal:close` — при закрытии модального окна.
+- `payment-form:submit` — при сабмите формы способа оплаты.
+- `contact-form:submi`t — при сабмите формы контактных данных.
+- `checkout:confirm` — при подтверждении оформления заказа.
+- `modal:form:input` — при вводе данных в поля форм внутри модального окна.
+- `cart:open` — при нажатии на кнопку открытия корзины.
