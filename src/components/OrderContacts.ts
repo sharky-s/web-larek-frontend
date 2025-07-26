@@ -43,4 +43,10 @@ export class OrderContacts extends Form<TContactForm> {
   set phone(value: string) {
     this.phoneInput.value = value;
   }
+
+  clear() : void{
+    this.emailInput.value = '';
+    this.phoneInput.value = '';
+    this.valid = false;
+  }
 }

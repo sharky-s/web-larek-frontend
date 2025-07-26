@@ -11,6 +11,7 @@ export class Product {
   protected imageElement: HTMLImageElement;
   protected descriptionElement?: HTMLElement;
   protected buttonElement: HTMLButtonElement;
+  protected indexElement?: HTMLElement;
 
   protected idValue: string = '';
 
@@ -21,12 +22,16 @@ export class Product {
     this.priceElement = ensureElement<HTMLElement>('.card__price', container);
     this.imageElement = container.querySelector('.card__image');
     this.descriptionElement = container.querySelector('.card__text') || undefined;
+    this.indexElement = container.querySelector('.basket__item-index') || undefined;
     this.buttonElement = container.querySelector('.card__button');
     if (this.buttonElement) {
       this.buttonElement.addEventListener('click', this.handleButtonClick.bind(this));
     }
-    this.container.addEventListener('click', this.handleCardClick.bind(this));
+    else {
+      this.container.addEventListener('click', this.handleCardClick.bind(this));
+    }
   }
+
 
   set id(value: string) {
     this.idValue = value;
@@ -79,9 +84,25 @@ export class Product {
     }
   }
 
-  set buttonText(value: string) {
-    this.buttonElement.textContent = value;
+  set index(value: number) {
+    if (this.indexElement) {
+      this.indexElement.textContent = `${value}`;
+    }
   }
+
+  isInCart(): boolean {
+    return this.buttonElement.classList.contains('basket__item-delete');
+  }
+
+  set buttonText(value: string) {
+    if (!this.isInCart()) {
+      this.buttonElement.textContent = value;
+    }
+    else {
+      this.buttonElement.textContent = '';
+    }
+  }
+
 
   setData(product: IProduct): void {
     this.id = product.id;
@@ -107,7 +128,7 @@ export class Product {
   private handleButtonClick(event: MouseEvent): void {
     event.stopPropagation();
     this.events.emit('product:add-to-cart', { id: this.id });
-    this.events.emit('product:open', { id: this.id });
+    if (!this.isInCart()) { this.events.emit('product:open', { id: this.id }); }
   }
 
   private handleCardClick(): void {

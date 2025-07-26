@@ -27,11 +27,16 @@ export class CompletedOrder {
     }
   }
 
+  get containerElement(): HTMLElement {
+    return this.container;
+  }
+
   setTotal(total: number): void {
     this.setText(this.description, `Ваш заказ ${total} синапсов`);
   }
 
   onClose(handler: () => void): void {
     this.closeButton.addEventListener('click', handler);
+
   }
 }

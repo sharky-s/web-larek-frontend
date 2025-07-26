@@ -37,6 +37,10 @@ export class Cart {
     this.updateButtonState();
   }
 
+  get containerElement(): HTMLElement {
+    return this.container;
+  }
+
   setItems(items: HTMLElement[]): void {
     if (items.length > 0) {
       this.catalog.replaceChildren(...items);

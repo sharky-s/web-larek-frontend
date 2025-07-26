@@ -41,7 +41,7 @@ export interface ICartData {
 }
 
 export interface IBuyersData{
-  order: IBuyer; // данные заказа
+  order: TFormData; // данные заказа
   //errors: МОЖЕТ ПОНАДОБИТЬСЯ
   setPaymentData(data: Record<keyof TPaymentForm, string>) : void;
   setContactData(data: Record<keyof TContactForm, string>) : void;
@@ -58,3 +58,5 @@ export type TPaymentForm = Pick<IBuyer, 'payment' | 'address'>;
 export type TContactForm = Pick<IBuyer, 'email' | 'phone'>;
 
 export type TSuccessStep = Pick<IBuyer, 'total'>;
+
+export type TFormData = TPaymentForm & TContactForm;

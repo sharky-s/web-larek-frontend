@@ -67,12 +67,21 @@ export class OrderPayment extends Form<TPaymentForm> {
   }
 
   togglePayment(button: HTMLElement): void {
-    this.resetPayment();
-    button.classList.add('button_alt-active');
+    // this.resetPayment();
+    const payment = button.getAttribute('name');
+    if (payment === 'card') {
+      this.buttonCash.classList.remove('button_alt-active');
+      this.buttonOnline.classList.add('button_alt-active')
+    } else if (payment === 'cash') {
+      this.buttonOnline.classList.remove('button_alt-active');
+      this.buttonCash.classList.add('button_alt-active');
+    }
   }
 
   resetPayment(): void {
     this.buttonOnline.classList.remove('button_alt-active');
     this.buttonCash.classList.remove('button_alt-active');
+    this.addressInput.value = '';
+    this.valid = false;
   }
 }

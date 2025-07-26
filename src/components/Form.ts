@@ -31,6 +31,8 @@ export class Form<T extends Record<string, string>> {
       e.preventDefault();
       this.events.emit(`${this.container.name}:submit`);
     });
+
+    
   }
 
   set valid(isValid: boolean) {
@@ -49,14 +51,14 @@ export class Form<T extends Record<string, string>> {
   }
 
   render(state: Partial<T>): HTMLFormElement {
-    Object.entries(state).forEach(([name, value]) => {
-      const input = this.container.querySelector<HTMLInputElement>(
-        `[name="${name}"]`
-      );
-      if (input) {
-        input.value = String(value ?? '');
-      }
-    });
+    // Object.entries(state).forEach(([name, value]) => {
+    //   const input = this.container.querySelector<HTMLInputElement>(
+    //     `[name="${name}"]`
+    //   );
+    //   if (input) {
+    //     input.value = String(value ?? '');
+    //   }
+    // });
 
     return this.container;
   }

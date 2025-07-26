@@ -2,7 +2,7 @@ import { IProduct, TCartItem, ICartData } from '../types';
 import { IEvents } from './base/events';
 
 export class CartData implements ICartData {
-  private _items: TCartItem[] = [];
+  private _items: IProduct[] = [];
 
   constructor(protected events: IEvents) {
     this.events = events;
@@ -14,12 +14,7 @@ export class CartData implements ICartData {
 
   addItem(product: IProduct): void {
     if (!this.checkProduct(product.id)) {
-      const item: TCartItem = {
-        id: product.id,
-        title: product.title,
-        price: product.price ?? 0
-      };
-      this._items.push(item);
+      this._items.push(product);
       this.events.emit('cart:changed', { items: this._items });
     }
   }
